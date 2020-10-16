@@ -1,0 +1,17 @@
+module DSMS
+{
+  interface DSMS
+  {
+  boolean addItem(in string managerID, in string itemID, in string itemName, in long quantity, in long price);
+  boolean removeItem(in string managerID, in string itemID, in long quantity);
+  string  listItemAvailability(in string managerID);
+  string purchaseItem(in string customerID, in string itemID, in string dateOfPurchase);
+  string findItem(in string customerID, in string itemName);
+  string returnItem(in string customerID, in string itemID, in string dateOfReturn);
+  string exchangeItem(in string customerID, in string newitemID, in string oldItemID);
+  void addWaitList(in string customerID, in string itemID);
+  void addCustomerClient(in string customerID);
+  void addManagerClient(in string managerID);
+  oneway void shutdown();
+  };
+};
