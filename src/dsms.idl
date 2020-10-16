@@ -1,4 +1,4 @@
-module DSMS
+module DSMSApp
 {
   interface DSMS
   {
