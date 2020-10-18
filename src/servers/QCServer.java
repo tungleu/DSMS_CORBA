@@ -1,6 +1,8 @@
 package servers;
 
 import DSMS.DSMS_Impl;
+import DSMSApp.DSMS;
+import DSMSApp.DSMSHelper;
 import common.Province;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
@@ -22,7 +24,7 @@ public class QCServer {
 
 //get object reference from the servant
             org.omg.CORBA.Object ref = rootpoa.servant_to_reference(server);
-
+            DSMS href = (DSMS) DSMSHelper.narrow(ref);
 //get the root naming context
 //NameServiceinvokes the name service
             org.omg.CORBA.Object objRef=
@@ -30,19 +32,19 @@ public class QCServer {
 //Use NamingContextExtwhich is part of the Interoperable Naming Service (INS) specification.
             NamingContextExt ncRef= NamingContextExtHelper.narrow(objRef);
 //bind the Object Reference in Naming
-            String name = "Hello";
+            String name = "QC";
             NameComponent path[] = ncRef.to_name( name );
             ncRef.rebind(path, href);
-            System.out.println("HelloServerready and waiting ...");
+            System.out.println("QC Server ready and waiting ...");
 //wait for invocations from clients
+            server.receive();
             orb.run();
         }
         catch (Exception e) {
             System.err.println("ERROR: " + e);
             e.printStackTrace(System.out);
         }
-        System.out.println("HelloServerExiting ...");
+        System.out.println("QC ServerExiting ...");
     }
-    }
-
 }
+
