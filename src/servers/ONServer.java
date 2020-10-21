@@ -15,7 +15,8 @@ public class ONServer {
     public static void main(String[] args) {
         try{
 
-            ORB orb= ORB.init(args, null);
+            String[] arguments = new String[] {"-ORBInitialPort","1234","-ORBInitialHost","localhost"};
+            ORB orb = ORB.init(arguments, null);
 // get reference to rootpoa& activate the POAManager
             POA rootpoa= POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
             rootpoa.the_POAManager().activate();

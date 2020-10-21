@@ -8,10 +8,7 @@ import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;
 
 import java.io.IOException;
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
@@ -70,7 +67,8 @@ public class Customer {
         System.out.println("Your ID is :" + clientID);
         Customer customer = new Customer(clientID, province);
         try{
-            ORB orb = ORB.init(args, null);
+            String[] arguments = new String[] {"-ORBInitialPort","1234","-ORBInitialHost","localhost"};
+            ORB orb = ORB.init(arguments, null);
             org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService");
             NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
             dsms = (DSMS) DSMSHelper.narrow(ncRef.resolve_str(customer.province.toString()));
@@ -79,13 +77,13 @@ public class Customer {
             String itemID;
             String inputDate;
             String itemName;
-            DateFormat format = new SimpleDateFormat("MMMM d, yyyy");
-            Date date;
+            String newItemID;
             while (true) {
                 System.out.println("Please choose your action ");
-                System.out.println("1.Purchase Item");
+                System.out.println("1. Purchase Item");
                 System.out.println("2. Find Item ");
                 System.out.println("3. Return Item ");
+                System.out.println("4. Exchange Item ");
                 customerOption = scanner.nextInt();
                 switch(customerOption){
                     case 1:
@@ -125,7 +123,7 @@ public class Customer {
                         System.out.println("FIND ITEM SELECTED");
                         System.out.println("Enter the name of item:");
                         itemName = scanner.next();
-                        dsms.findItem(customer.customerID,itemName);
+                        System.out.println(dsms.findItem(customer.customerID,itemName));
                         break;
                     case 3:
                         System.out.println("RETURN ITEM SELECTED");
@@ -142,6 +140,23 @@ public class Customer {
                             System.out.println("Return unsuccessful");
                         }
                         break;
+                    case 4:
+                        System.out.println("EXCHANGE ITEM SELECTED");
+                        System.out.println("Enter old item ID:");
+                        itemID = scanner.next();
+                        scanner.nextLine();
+                        System.out.println("Enter new item ID:");
+                        newItemID = scanner.next();
+                        scanner.nextLine();
+                        System.out.println("Enter the date of return in this form: MMMM dd, yyyy ");
+                        inputDate = scanner.nextLine();
+                        boolean exchangeResult = dsms.exchangeItem(customer.customerID, newItemID, itemID, inputDate);
+                        if (exchangeResult){
+                            System.out.println("Exchange successful");
+                        }
+                        else{
+                            System.out.println("Exchange unsuccessful");
+                        }
                     }
                 }
             } catch (Exception e) {

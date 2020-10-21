@@ -53,7 +53,7 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public boolean addItem(String managerID, String itemID, String itemName, int quantity, int price) {
+    public synchronized boolean addItem(String managerID, String itemID, String itemName, int quantity, int price) {
         if (this.store.containsKey(itemID)) {
             String[] info = this.store.get(itemID).split(",");
             info[1] = Integer.toString(Integer.parseInt(info[1]) + quantity);
@@ -73,7 +73,7 @@ public class DSMS_Impl extends DSMSPOA {
                 }
                 else{
                     int port = this.portMap.get(id.substring(0,2));
-                    String message = "PURCHASE_2,"+itemID+","+new Date().toString();
+                    String message = "PURCHASE_2,"+ id + "," +itemID+ ","+new Date().toString();
                     this.sendMessage(port,message);
                 }
             }
@@ -83,8 +83,13 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public boolean removeItem(String managerID, String itemID, int quantity) {
+    public synchronized boolean removeItem(String managerID, String itemID, int quantity) {
         if (this.store.containsKey(itemID)) {
+            if(quantity == -1){
+                this.store.remove(itemID);
+                logger.info("Manager with id: " + managerID + " removed this item out of the store:" + itemID);
+                return true;
+            }
             String[] info = this.store.get(itemID).split(",");
             info[1] = Integer.toString(Integer.parseInt(info[1]) - quantity);
             if (Integer.parseInt(info[1]) < 0) {
@@ -103,7 +108,7 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public String listItemAvailability(String managerID) {
+    public synchronized String listItemAvailability(String managerID) {
         logger.info("Manager with id: " + managerID + " requested for listItemAvailability()");
         String result = "";
         for (Map.Entry<String,String> entry: this.store.entrySet()){
@@ -113,7 +118,7 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public String purchaseItem(String customerID, String itemID, String dateOfPurchase) {
+    public synchronized String purchaseItem(String customerID, String itemID, String dateOfPurchase) {
         String serverName = itemID.substring(0,2);
         customerClient customer = this.customerClients.get(customerID);
         if (serverName.equals(this.province.toString())) {
@@ -174,6 +179,7 @@ public class DSMS_Impl extends DSMSPOA {
                     info[1] = Integer.toString(Integer.parseInt(info[1]) -1);
                     store.replace(itemID, String.join(",", info));
                     this.purchaseLog.add(itemID+","+customerID+","+dateOfPurchase);
+                    logger.info(itemID+","+customerID+","+dateOfPurchase);
                     logger.info("Customer with id: " + customerID + " purchased successfully");
                     return "SUCCESSFUL";
                 }
@@ -193,7 +199,7 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public String findItem(String customerID, String itemName) {
+    public synchronized String findItem(String customerID, String itemName) {
         String result = this.findLocalItem(itemName);
         for(Map.Entry<String,Integer> entry: this.portMap.entrySet()){
             if(entry.getKey().equals(this.province.toString())){
@@ -212,7 +218,8 @@ public class DSMS_Impl extends DSMSPOA {
     public String findLocalItem(String itemName){
         String result = "";
         for (Map.Entry<String, String> entry : this.store.entrySet()) {
-            if (itemName.equals(entry.getValue().split(",")[0])) {
+            String name = entry.getValue().split(",")[0];
+            if (itemName.trim().equals(name)) {
                 return entry.getKey();
             }
         }
@@ -220,14 +227,12 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public boolean returnItem(String customerID, String itemID, String dateOfReturn) {
+    public synchronized boolean returnItem(String customerID, String itemID, String dateOfReturn) {
         customerClient customer = this.customerClients.get(customerID);
         if(itemID.substring(0,2).equals(this.province.toString())){
             if(this.checkReturnElgible(customerID,itemID,dateOfReturn)){
                 String[] info = this.store.get(itemID).split(",");
-//                info[1] = Integer.toString(Integer.parseInt(info[1]) +1);
-//                store.replace(itemID, String.join(",", info));
-                this.addItem("return",itemID,info[0],1,Integer.parseInt(info[2]));
+                this.addItem("Return Manager",itemID,info[0],1,Integer.parseInt(info[2]));
                 customer.setBudget(customer.getBudget()+Integer.parseInt(info[2]));
                 logger.info("Customer with id: " + customerID + "returned this item:" + itemID);
                 return true;
@@ -239,42 +244,43 @@ public class DSMS_Impl extends DSMSPOA {
         else{
             int port = this.portMap.get(itemID.substring(0,2));
             logger.info("Sending UDP request to return Item");
-            String reply = this.sendMessage(port,"RETURN,"+itemID+","+customerID+","+dateOfReturn.toString());
+            String reply = this.sendMessage(port,"RETURN,"+itemID+","+customerID+","+dateOfReturn);
             if(reply.startsWith("FALSE")){
                 return false;
             }
             else if(reply.startsWith("TRUE")){
-                customer.setBudget(customer.getBudget()+Integer.parseInt(reply.split(",")[2]));
+                customer.setBudget(customer.getBudget()+Integer.parseInt(reply.split(",")[1].trim()));
                 logger.info("Customer with id: " + customerID + " returned this item:" + itemID);
                 return true;
             }
         }
-        return true;
+        return false;
     }
     public String returnItemfromOutside(String customerID, String itemID, String dateOfReturn) {
         if(this.checkReturnElgible(customerID,itemID,dateOfReturn)){
             String[] info = this.store.get(itemID).split(",");
-            info[1] = Integer.toString(Integer.parseInt(info[1]) +1);
-            store.replace(itemID, String.join(",", info));
+            this.addItem("Return Manager",itemID,info[0],1,Integer.parseInt(info[2]));
             logger.info("Customer with id: " + customerID + " returned this item:" + itemID);
             String price = this.store.get(itemID).split(",")[1];
-            return "TRUE"+ price;
+            return "TRUE,"+ price;
         }
         else{
             return "FALSE";
         }
     }
     @Override
-    public boolean exchangeItem(String customerID, String newitemID, String oldItemID, String dateOfExchange) {
+    public synchronized boolean exchangeItem(String customerID, String newitemID, String oldItemID, String dateOfExchange) {
         //check return eligibility
         if(oldItemID.startsWith(this.province.toString())){
-            if(!this.checkReturnElgible(oldItemID,customerID, dateOfExchange)){
+                if(!this.checkReturnElgible(customerID, oldItemID, dateOfExchange)){
+                    this.logger.info("return not eligible lol");
                 return false;
             }
         }
         else{
             if(this.sendMessage(this.portMap.get(oldItemID.substring(0,2)),
                     "RETURN_ELIGIBLE,"+customerID+","+oldItemID+","+dateOfExchange).equals("false")){
+                this.logger.info("return not eligible lol");
                 return false;
             }
         }
@@ -284,6 +290,7 @@ public class DSMS_Impl extends DSMSPOA {
         if(newitemID.startsWith(this.province.toString())){
             String[] itemInfo = this.store.get(newitemID).split(",");
             if(Integer.parseInt(itemInfo[1]) == 0){
+                this.logger.info("out of stock");
                 return false;
             }
             oldItemPrice = Integer.parseInt(itemInfo[2]);
@@ -292,6 +299,7 @@ public class DSMS_Impl extends DSMSPOA {
             String[] itemInfo = this.sendMessage(this.portMap.get(newitemID.substring(0,2)),
                     "ITEM_INFO_2,"+newitemID).split(",");
             if(Integer.parseInt(itemInfo[1]) == 0){
+                this.logger.info("out of stock");
                 return false;
             }
             newItemPrice = Integer.parseInt(itemInfo[2]);
@@ -300,6 +308,7 @@ public class DSMS_Impl extends DSMSPOA {
         customerClient customer = this.customerClients.get(customerID);
         int requiredBudget = Math.max(0, newItemPrice-oldItemPrice);
         if(customer.getBudget() < requiredBudget){
+            this.logger.info("no budget");
             return false;
         }
         this.returnItem(customerID,oldItemID,dateOfExchange);
@@ -322,7 +331,7 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public void addWaitList(String customerID, String itemID) {
+    public synchronized void addWaitList(String customerID, String itemID) {
         if (itemID.substring(0, 2).equals(this.province.toString())) {
             this.addLocalWaitList(customerID, itemID);
         }
@@ -345,13 +354,13 @@ public class DSMS_Impl extends DSMSPOA {
     }
 
     @Override
-    public void addCustomerClient(String customerID) {
+    public synchronized void addCustomerClient(String customerID) {
         customerClient customer = new customerClient(province,customerID);
         this.customerClients.put(customer.getID(), customer);
     }
 
     @Override
-    public void addManagerClient(String managerID) {
+    public synchronized void addManagerClient(String managerID) {
         managerClient manager = new managerClient(province,managerID);
         this.managerClients.put(manager.getID(), manager);
     }
@@ -419,8 +428,8 @@ public class DSMS_Impl extends DSMSPOA {
                 } else if(requestArgs[0].equals("ITEM_INFO2")){
                     replyMessage = this.store.get(requestArgs[1]);
                 }else if(requestArgs[0].equals("RETURN")){
-                    String customerID = requestArgs[1];
-                    String itemID = requestArgs[2];
+                    String itemID = requestArgs[1];
+                    String customerID = requestArgs[2];
                     String dateOfReturn = requestArgs[3];
                     replyMessage = this.returnItemfromOutside(customerID,itemID,dateOfReturn);
                 }
@@ -430,9 +439,16 @@ public class DSMS_Impl extends DSMSPOA {
                     String date = requestArgs[3];
                     replyMessage = this.purchaseItem(customerID,itemID, date);
                 }
+                else if(requestArgs[0].equals("RETURN_ELIGIBLE")){
+                    String customerID = requestArgs[1];
+                    String itemID = requestArgs[2];
+                    String date = requestArgs[3];
+                    replyMessage = String.valueOf(this.checkReturnElgible(customerID,itemID,date));
+                }
                 DatagramPacket reply = new DatagramPacket(replyMessage.getBytes(), replyMessage.length(), request.getAddress(),
                         request.getPort());
                 aSocket.send(reply);
+                buffer = new byte[1000];
             }
         } catch (SocketException e) {
             System.out.println("Socket: " + e.getMessage());
