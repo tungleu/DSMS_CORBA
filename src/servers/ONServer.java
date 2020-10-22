@@ -38,7 +38,9 @@ public class ONServer {
             ncRef.rebind(path, href);
             System.out.println("ON Server ready and waiting ...");
 //wait for invocations from clients
-            server.receive();
+            Runnable task = server::receive;
+            Thread thread = new Thread(task);
+            thread.start();
             orb.run();
         }
         catch (Exception e) {

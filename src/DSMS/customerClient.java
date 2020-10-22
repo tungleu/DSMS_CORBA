@@ -10,13 +10,13 @@ public class customerClient{
     private int budget = 1000;
     private Province province;
     private PrintWriter pw ;
-    private HashMap<String, Boolean> elgibility = new HashMap<String, Boolean>();
+    private HashMap<String, Boolean> eligibility = new HashMap<String, Boolean>();
     public customerClient(Province province, String customerID){
         this.province = province;
         this.customerID = customerID;
-        this.elgibility.put("QC",true);
-        this.elgibility.put("ON",true);
-        this.elgibility.put("BC",true);
+        this.eligibility.put("QC",true);
+        this.eligibility.put("ON",true);
+        this.eligibility.put("BC",true);
     }
     public String getID(){
         return this.customerID;
@@ -27,11 +27,11 @@ public class customerClient{
     public void setBudget(int budget){
         this.budget = budget;
     }
-    public void setElgibility(String province,boolean eligibility){
-        this.elgibility.replace(province,eligibility);
+    public void setEligibility(String province, boolean eligibility){
+        this.eligibility.replace(province,eligibility);
     }
     public boolean checkEligible(String province){
-        return this.elgibility.get(province);
+        return this.eligibility.get(province);
     }
 
 

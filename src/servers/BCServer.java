@@ -22,7 +22,6 @@ public class BCServer {
             rootpoa.the_POAManager().activate();
 // create servant and register it with the ORB
             DSMS_Impl server= new DSMS_Impl(Province.BC,orb);
-
 //get object reference from the servant
             org.omg.CORBA.Object ref = rootpoa.servant_to_reference(server);
             DSMS href = (DSMS) DSMSHelper.narrow(ref);
@@ -37,7 +36,9 @@ public class BCServer {
             NameComponent path[] = ncRef.to_name( name );
             ncRef.rebind(path, href);
             System.out.println("BC Server ready and waiting ...");
-            server.receive();
+            Runnable task = server::receive;
+            Thread thread = new Thread(task);
+            thread.start();
 //wait for invocations from clients
             orb.run();
         }

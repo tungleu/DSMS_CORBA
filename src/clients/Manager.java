@@ -7,8 +7,6 @@ import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;
 
 import java.io.IOException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
@@ -18,12 +16,10 @@ public class Manager {
     static DSMS dsms;
     private String managerID;
     private Province province;
-    private Registry registry = null;
     private Logger logger = null;
     public Manager(String managerID, Province province) throws Exception {
         this.managerID = managerID;
         this.province = province;
-        this.registry = LocateRegistry.getRegistry(1111);
         this.logger = startLogger();
     }
     public Logger startLogger() {

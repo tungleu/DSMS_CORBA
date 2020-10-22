@@ -11,6 +11,7 @@ import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+
 public class QCServer {
     public static void main(String[] args) {
         try{
@@ -38,7 +39,9 @@ public class QCServer {
             ncRef.rebind(path, href);
             System.out.println("QC Server ready and waiting ...");
 //wait for invocations from clients
-            server.receive();
+            Runnable task = server::receive;
+            Thread thread = new Thread(task);
+            thread.start();
             orb.run();
         }
         catch (Exception e) {

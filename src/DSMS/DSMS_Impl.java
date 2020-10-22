@@ -134,7 +134,7 @@ public class DSMS_Impl extends DSMSPOA {
                     String budgetReturn = result.split(",")[1].trim();
                     int returnBudget = Integer.parseInt(budgetReturn);
                     customer.setBudget(returnBudget);
-                    customer.setElgibility(serverName,false);
+                    customer.setEligibility(serverName,false);
                     return ("SUCCESSFUL");
                 } else {
                     return result;
@@ -297,7 +297,7 @@ public class DSMS_Impl extends DSMSPOA {
         }
         else{
             String[] itemInfo = this.sendMessage(this.portMap.get(newitemID.substring(0,2)),
-                    "ITEM_INFO_2,"+newitemID).split(",");
+                    "ITEM_INFO_2,"+newitemID).trim().split(",");
             if(Integer.parseInt(itemInfo[1]) == 0){
                 this.logger.info("out of stock");
                 return false;
@@ -425,8 +425,8 @@ public class DSMS_Impl extends DSMSPOA {
                 }else if(requestArgs[0].equals("ITEM_INFO")){
                     String itemName = requestArgs[1];
                     replyMessage = this.findLocalItem(itemName);
-                } else if(requestArgs[0].equals("ITEM_INFO2")){
-                    replyMessage = this.store.get(requestArgs[1]);
+                } else if(requestArgs[0].equals("ITEM_INFO_2")){
+                    replyMessage = this.store.get(requestArgs[1].trim());
                 }else if(requestArgs[0].equals("RETURN")){
                     String itemID = requestArgs[1];
                     String customerID = requestArgs[2];
